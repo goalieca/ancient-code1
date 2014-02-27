@@ -5,6 +5,7 @@ import (
     "fmt"
     "os"
     "image"
+    "image/color"
     "image/png"
 )
 
@@ -15,20 +16,20 @@ type Board struct {
 }
 
 //constructor (static, returns pointer)
-func NewBoard(width, height int) *Board {
+func NewBoard(r image.Rectangle) *Board {
     //initialize and return reference
-    board := &Board{ image.NewRGBA(width,height), 0 }
+    board := &Board{ image.NewRGBA(r), 0 }
 
     //iterate over image and initialize data
     //note: no range over 2D matrices,Image type
-    for y := 0; y <height; y++ {
-        for x := 0; x <width; x++ {
+    for y := 0; y <r.Dy(); y++ {
+        for x := 0; x <r.Dx(); x++ {
             //explicit casting
-            var gray_x = byte(x * 255 / width)
-            var gray_y = byte(y * 255 / height)
-            var gray = byte((x*255/width + y*255/height)/2)
+            var gray_x = uint8(x * 255 / r.Dx())
+            var gray_y = uint8(y * 255 / r.Dy())
+            var gray = uint8((x*255/r.Dx() + y*255/r.Dy())/2)
             //create color struct
-            var col = image.RGBAColor{gray_x,gray_y,gray,255}
+            var col = color.RGBA{gray_x,gray_y,gray,255}
             //assignment, note no -> operator in go. 
             // . and -> knows which to do
             board.Image.Set(x,y,col)
@@ -55,20 +56,15 @@ func max(a,b int) int {
 
 //Evolve "member" for Board
 func (b *Board) Evolve() {
-    //cache width and height, not sure 
-    //how optimizers cache or recheck every loop?
-    var width = b.Image.Rect.Dx()
-    var height = b.Image.Rect.Dy()
-
     //allocate output (no in place way of doing it)
-    outImage := image.NewRGBA(width,height)
+    outImage := image.NewRGBA(b.Image.Rect)
 
-    for y := 0; y < height; y++ {
-        for x := 0; x < width; x++ {
+    for y := 0; y < b.Image.Rect.Dy(); y++ {
+        for x := 0; x < b.Image.Rect.Dx(); x++ {
             //without .(image.RGBAColor) type col stays
             //as RGBA but later accessed as "Color"
             //some "interface" voodoo
-            col := b.Image.At(x,y).(image.RGBAColor)
+            col := b.Image.At(x,y).(color.RGBA)
 
             //multiple assignment/return
             var sumRed, sumGreen, sumBlue = 0, 0, 0
@@ -77,7 +73,7 @@ func (b *Board) Evolve() {
             for dy := -1; dy <= 1; dy++ {
                 for dx := -1; dx <= 1; dx++ {
                     //returns black if not in bounds
-                    col_n := b.Image.At(x+dx,y+dy).(image.RGBAColor)
+                    col_n := b.Image.At(x+dx,y+dy).(color.RGBA)
                     sumRed += int(col_n.R)
                     sumGreen += int(col_n.G)
                     sumBlue += int(col_n.B)
@@ -122,7 +118,7 @@ func (b* Board) Write() {
     var fileName = fmt.Sprintf("./%000d.png",b.evolution)
 
     //open writer and save image (minimal error handling)
-    outFile, err := os.Open(fileName, os.O_CREAT | os.O_WRONLY, 0666)
+    outFile, err := os.OpenFile(fileName, os.O_CREATE | os.O_WRONLY, 0666)
     if err != nil {
         panic(fmt.Sprintf("%v\n",err))
     }
@@ -142,7 +138,7 @@ func main() {
         generations = 100
     )
 
-    b := NewBoard(width,height)
+    b := NewBoard(image.Rect(0,0,width,height))
     for i := 0 ; i < generations ; i++ {
         b.Evolve()
     }
