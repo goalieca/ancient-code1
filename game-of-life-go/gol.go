@@ -15,7 +15,6 @@ type Board struct {
     evolution int
 }
 
-//constructor (static, returns pointer)
 func NewBoard(r image.Rectangle) *Board {
     //initialize and return reference
     board := &Board{ image.NewRGBA(r), 0 }
@@ -39,7 +38,6 @@ func NewBoard(r image.Rectangle) *Board {
     return board
 }
 
-//because go provides no basic math on prim types other than float
 func min(a,b int) int {
     if a < b {
         return a
@@ -56,17 +54,12 @@ func max(a,b int) int {
 
 //Evolve "member" for Board
 func (b *Board) Evolve() {
-    //allocate output (no in place way of doing it)
     outImage := image.NewRGBA(b.Image.Rect)
 
     for y := 0; y < b.Image.Rect.Dy(); y++ {
         for x := 0; x < b.Image.Rect.Dx(); x++ {
-            //without .(image.RGBAColor) type col stays
-            //as RGBA but later accessed as "Color"
-            //some "interface" voodoo
             col := b.Image.At(x,y).(color.RGBA)
 
-            //multiple assignment/return
             var sumRed, sumGreen, sumBlue = 0, 0, 0
 
             //check neighbours
@@ -81,7 +74,6 @@ func (b *Board) Evolve() {
             }
 
             //too much casting, ewww
-            //also, go throws on overflows.. 
             if sumGreen > 255*3 {
                 col.R = byte(max(255,int(col.G) + sumBlue/8))
             } else {
@@ -108,16 +100,13 @@ func (b *Board) Evolve() {
     //replace old image with new generation
     b.Image = outImage
 
-    //postfix operator does not return value
     b.evolution++
 }
 
 func (b* Board) Write() {
-    //is there a diff between var x = , and x:=  ????
-    //afaict var x excludes pointers
     var fileName = fmt.Sprintf("./%000d.png",b.evolution)
 
-    //open writer and save image (minimal error handling)
+    //open writer and save image
     outFile, err := os.OpenFile(fileName, os.O_CREATE | os.O_WRONLY, 0666)
     if err != nil {
         panic(fmt.Sprintf("%v\n",err))
